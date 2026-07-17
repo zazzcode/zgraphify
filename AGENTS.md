@@ -42,13 +42,17 @@ delivery specifications, and selective standards loading.
 
 ### Branch and Worktree Policy
 
+- Read `.zazz/zgraphify-agent-orientation.md` before changing branches, syncing
+  upstream, or creating a pull request.
+- The current operating model uses a regular Git checkout and ordinary branches;
+  do not create or convert to worktrees unless the owner explicitly authorizes the
+  planned migration.
 - `main` is this fork's integration branch. Keep it clean and merge reviewed work
   into it through pull requests.
 - `v8` is the upstream baseline branch; do not treat it as this fork's integration
-  target.
-- Use one active deliverable per worktree and one branch per worktree. Use flat,
-  hyphenated branch names without `/` so they map cleanly to worktree directories.
-- The initial feature branch is `lady-bug-integration-mvp`, based on `main`.
+  target or put fork-specific work directly on it.
+- Use concise, flat, hyphenated feature branch names without `/`. The initial
+  feature branch is `lady-bug-integration-mvp`, based on `main`.
 
 ### Development and Contribution Notes
 
