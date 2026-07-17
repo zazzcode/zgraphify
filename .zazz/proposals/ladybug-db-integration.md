@@ -280,6 +280,47 @@ no benchmark target is proposed yet. The measurements must distinguish build-tim
 peak RSS from steady-state server RSS and state whether NetworkX was present in the
 measured process.
 
+## Pre-Implementation Viability Assessment
+
+**Assessment:** The complete Ladybug-mode engine replacement is conditionally viable
+and worth a discovery spike. It is not yet defensible as an unconditional performance
+upgrade for every Graphify workflow. The clearest expected gains are memory use and
+repeated graph-query workloads; the main risk is semantic parity for the operations
+that are currently more than basic graph traversal.
+
+| Graphify capability | Current shape | Ladybug fit | Assessment |
+| --- | --- | --- | --- |
+| Persistent graph and restart | Node-link JSON is read and rehydrated into a full NetworkX graph. | On-disk property graph with native page cache and indexes. | High confidence for lower steady-state Python memory and better restart/query shape. |
+| Neighbor, filtered, and bounded traversal queries | Python iteration plus BFS/DFS over NetworkX. | Cypher pattern matching and bounded variable-length relationships. | High confidence for an engine-native implementation; prove output ordering and budget semantics. |
+| Shortest path | `nx.shortest_path()` over an in-memory graph. | Native shortest-path patterns are supported. | High confidence for the operation; preserve Graphify endpoint selection and response formatting. |
+| Text search and fuzzy node ranking | Full NetworkX load plus a Python trigram index, IDF weighting, and custom scoring. | Optional FTS extension provides BM25 over string properties. | Medium confidence. FTS can provide bounded candidates, but BM25/stemming is not the same as current trigram/fuzzy semantics. Retain a bounded Python reranker until parity is proven. |
+| Community detection | Leiden through `graspologic` when present; otherwise NetworkX Louvain. | The optional `algo` extension supports Louvain, not the current Leiden path. | Medium-to-high parity risk. Community assignments and labels may change even when both are valid. |
+| Analysis and recommendations | Betweenness-based analysis, cycle enumeration, and NetworkX-derived structures. | Native algorithm extension covers Louvain, PageRank, components, and k-core; it does not document every current NetworkX algorithm. | High migration risk. Each analysis must be replaced, reformulated, or explicitly retired only with product approval. |
+| Visual exports and GraphML | NetworkX layouts and writers. | Cypher can supply bounded nodes/edges, but rendering needs its own adapter. | Medium risk; avoid reintroducing a full NetworkX graph merely to render an output. |
+| Full and incremental build | In-memory NetworkX mutation followed by JSON export. | Direct typed writes and transactions. | Medium performance risk. Per-record Cypher writes may be slower; the spike must validate batched ingestion and source-owned replacement. |
+
+This assessment comes from a static inventory of the current codebase: `serve.py`
+owns custom trigram/IDF scoring, BFS/DFS, and NetworkX shortest paths; `cluster.py`
+uses Leiden/Louvain; and `analyze.py` uses betweenness and cycle algorithms. It is
+also grounded in Ladybug’s documented in-process property graph, shortest-path support,
+full-text search extension, and algorithm-extension scope. [Ladybug overview](https://docs.ladybugdb.com/)
+[Shortest paths](https://docs.ladybugdb.com/extensions/algo/path/)
+[Full-text search](https://docs.ladybugdb.com/extensions/full-text-search/)
+[Graph algorithms](https://docs.ladybugdb.com/extensions/algo/)
+
+The proposed complete replacement is most compelling when Graphify serves repeated
+MCP/CLI queries over medium or large graphs and needs to avoid a permanent Python
+object graph. It is less likely to improve a one-shot small-repository build followed
+by one report, because database setup and ingestion add overhead while the current
+NetworkX path may already be fast enough.
+
+No document-only analysis can prove the performance claim: it cannot measure the
+actual graph sizes, edge density, query mix, platform wheels, or ingestion overhead
+for Zgraphify users. The discovery spike must therefore benchmark the same
+representative corpus under both engines before any default changes. The go/no-go
+decision should distinguish query-server RSS, build peak RSS, cold query latency, warm
+query latency, incremental-update duration, and output parity.
+
 ## Optional Graph-Engine Selection
 
 The intended product direction is an optional graph-engine backend: users can retain
