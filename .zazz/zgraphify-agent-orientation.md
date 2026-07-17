@@ -34,10 +34,23 @@ upstream code    fork integration    focused fork work
 | `main` | Zgraphify's integration branch and normal pull-request target. It contains the Zazz foundation plus accepted fork work. | Keep it clean. Integrate reviewed work and upstream `v8` updates here. |
 | `lady-bug-integration-mvp` | The initial fork feature branch, based on `main`. | Implement only the feature's approved scope; target `main` in its PR. |
 | Future feature branches | One focused fork change each, created from current `main`. | Target `main` in PRs. |
+| Upstream-contribution branches | A focused change that may be proposed to Graphify itself, created from `upstream/v8`. | Keep it independent from fork-only work and target `upstream/v8` in an upstream PR. |
 
-The `upstream` remote has not yet been configured in this checkout. When it is
-added, it should point to `https://github.com/Graphify-Labs/graphify.git` and be
-used for fetching, not for pushing fork work.
+The `upstream` remote is configured as `https://github.com/Graphify-Labs/graphify.git`.
+It is a fetch-only source for the upstream project; fork work MUST be pushed only to
+`origin`.
+
+## Zazz Ownership Boundary
+
+The `.zazz/` directory is fork-owned methodology and orientation content. It exists
+on `main` and on fork feature branches created from `main`.
+
+- `.zazz/` MUST NOT be added to `v8`, `upstream/v8`, or an upstream-contribution
+  branch.
+- An upstream-contribution branch begins from `upstream/v8`, so it does not inherit
+  `.zazz/` or other fork-only process changes.
+- A fork feature may inform an upstream proposal, but the upstream contribution
+  MUST be re-created as a focused, independently reviewable change.
 
 ## Everyday Branch Workflow
 
@@ -67,6 +80,24 @@ After the `upstream` remote is configured:
 Never overwrite `main` with upstream history: it intentionally carries fork-owned
 Zazz and feature commits. Preserve that boundary so upstream pulls remain
 reviewable and recoverable.
+
+## Potential Upstream Contributions
+
+Some Zgraphify work may be valuable to Graphify itself. For example, support for
+PostgreSQL SQL (`psql`) or Transact-SQL (`T-SQL`) may become an upstream proposal
+when the implementation is generally useful and does not depend on fork-only
+workflow or product decisions.
+
+For an upstream contribution:
+
+1. Fetch `upstream` and start a new flat branch from `upstream/v8`.
+2. Implement only the upstream-ready change; do not copy `.zazz/`, fork feature
+   code, or unrelated cleanup into the branch.
+3. Follow upstream's contributor notes, including its test and extractor-fixture
+   expectations.
+4. Open a pull request targeting upstream `v8`.
+5. If the upstream change is accepted, later synchronize `main` from
+   `upstream/v8` rather than manually duplicating the merged patch.
 
 ## Contributor Notes Versus Fork Policy
 
