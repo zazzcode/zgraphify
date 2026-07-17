@@ -8,12 +8,14 @@ development. It explains how the fork relates to upstream Graphify, which branch
 are safe to change, and how the Zazz methodology applies here.
 
 Read this document before changing branches, synchronizing upstream changes, or
-preparing a pull request. For all other repository rules, read `../AGENTS.md`.
+preparing a pull request. For all other repository rules, read `../../AGENTS.md`.
 
 ## Current Git Operating Model
 
 We currently use one regular Git checkout and ordinary Git branches. We are **not**
-using the Zazz bare-repository plus sibling-worktree model yet.
+using the Zazz bare-repository plus sibling-worktree model yet. This is an
+intentional, temporary operating choice for this exploratory fork: use standard
+branch-based Git workflow here even though Zazz projects commonly use worktrees.
 
 - Do not create, convert, remove, or assume Git worktrees.
 - Keep one focused change or feature per branch.
@@ -120,7 +122,8 @@ fixtures plus `tests/test_languages.py` coverage for new language extractors.
 - `.zazz/standards/index.yaml` is the entry point for selectively loading relevant
   engineering standards before code changes or review; its paths are relative to
   the repository root.
-- `.zazz/docs/` contains the complete vendored Zazz general-documentation library.
+- `.zazz/docs/` contains selected top-level reference guides, including this
+  orientation; it MUST NOT duplicate active artifact directories.
 - `.zazz/features/` holds long-lived feature context.
 - `.zazz/specifications/` holds bounded deliverable specifications.
 - `.zazz/ephemeral/` is untracked local workspace for run logs, QA notes, handoffs,
