@@ -18,7 +18,7 @@ fork-owned work from planning through integration.
 
 - `v8` is the upstream baseline retained for comparison and upstream synchronization.
 - `main` is this fork's integration branch and pull-request target.
-- `lady-bug-integration-mvp` is the first feature branch, based on `main`.
+- `ladybug-integration-mvp` is the first feature branch, based on `main`.
 
 ## Documentation Policy
 

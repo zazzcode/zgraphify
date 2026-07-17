@@ -96,7 +96,7 @@ synchronizing upstream, or creating a pull request.
   on it.
 - Fork feature branches start from `main`, use concise flat hyphenated names without
   `/`, and target `main` in their pull requests. The initial feature branch is
-  `lady-bug-integration-mvp`.
+  `ladybug-integration-mvp`.
 - The `upstream` remote is fetch-only. Push fork work only to `origin`.
 - A potential upstream contribution starts from `upstream/v8` in a separate branch;
   it MUST NOT include `.zazz/` or unrelated fork work and targets upstream `v8`.

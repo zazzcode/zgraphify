@@ -33,7 +33,7 @@ upstream code    fork integration    focused fork work
 | `upstream/v8` | The upstream project's active development line. It is the source of future upstream updates. | Treat as read-only. Do not add Zazz or fork feature work here. |
 | `v8` | This fork's local snapshot of the upstream baseline. | Keep it free of fork-specific work; use it only for comparison or upstream-compatible contribution branches. |
 | `main` | Zgraphify's integration branch and normal pull-request target. It contains the Zazz foundation plus accepted fork work. | Keep it clean. Integrate reviewed work and upstream `v8` updates here. |
-| `lady-bug-integration-mvp` | The initial fork feature branch, based on `main`. | Implement only the feature's approved scope; target `main` in its PR. |
+| `ladybug-integration-mvp` | The initial fork feature branch, based on `main`. | Implement only the feature's approved scope; target `main` in its PR. |
 | Future feature branches | One focused fork change each, created from current `main`. | Target `main` in PRs. |
 | Upstream-contribution branches | A focused change that may be proposed to Graphify itself, created from `upstream/v8`. | Keep it independent from fork-only work and target `upstream/v8` in an upstream PR. |
 
