@@ -23,6 +23,10 @@ skills/
 # broad skills/ rule above ignores install-target skill dirs elsewhere.
 !graphify/skills/
 !graphify/skills/**
+# Zazz's portable, repository-local skills are intentionally versioned.
+!.agents/
+!.agents/skills/
+!.agents/skills/**
 # The skillgen core fragments are the human-edited source of the lean SKILL.md.
 # A global "core" ignore (for core dumps) would otherwise drop them.
 !tools/skillgen/fragments/core/
@@ -31,6 +35,7 @@ docs/superpowers/
 .vscode/
 .kilo
 openspec/
+.zazz/ephemeral/
 # Local benchmark scripts — never commit
 scripts/run_k2_*.py
 scripts/llm.py
