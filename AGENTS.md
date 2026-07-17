@@ -29,7 +29,7 @@ top-level project documentation root.
 
 Before changing repository content, branches, or Git remotes, read both:
 
-1. `.zazz/zgraphify-agent-orientation.md` for this fork's branch, upstream, and
+1. `.zazz/docs/zgraphify-agent-orientation.md` for this fork's branch, upstream, and
    checkout policy.
 2. `.zazz/standards/index.yaml` to route the task to the applicable standards.
 
@@ -52,7 +52,7 @@ execution artifacts under `.zazz/ephemeral/`.
 | RUN_LOG, QA, handoff, and evidence | `.zazz/ephemeral/` | Keep local and ignored unless the owner explicitly requests durable promotion. |
 | Final implemented specifications | `.zazz/specifications/` | Update the completed specification with implementation and review evidence. |
 | Standards | `.zazz/standards/` | Keep the active routing index and adopted standards here. |
-| General Zazz reference docs | `.zazz/docs/` | Treat as the complete vendored methodology/reference library. |
+| General Zazz reference docs | `.zazz/docs/` | Treat as the selective top-level reference-guide library; active artifacts stay in their root-level Zazz directories. |
 
 `.zazz/ephemeral/` is local scratch space for run logs, QA notes, handoffs,
 evidence, recovery notes, and scratch analysis. Do not put durable architecture,
@@ -94,7 +94,7 @@ deliverable specification.
 
 ## Branch and Checkout Policy
 
-Read `.zazz/zgraphify-agent-orientation.md` before changing branches,
+Read `.zazz/docs/zgraphify-agent-orientation.md` before changing branches,
 synchronizing upstream, or creating a pull request.
 
 - Current operating model: one regular Git checkout and ordinary Git branches.
@@ -142,7 +142,7 @@ Repo-specific overrides:
 
 ## Quick Links
 
-- Agent orientation: `.zazz/zgraphify-agent-orientation.md`
+- Agent orientation: `.zazz/docs/zgraphify-agent-orientation.md`
 - Zazz methodology: `.zazz/zazz-methodology.md`
 - Agent execution discipline: `.zazz/docs/agent-execution-discipline.md`
 - Standards index: `.zazz/standards/index.yaml`
