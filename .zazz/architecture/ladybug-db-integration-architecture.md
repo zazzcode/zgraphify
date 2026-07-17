@@ -146,6 +146,37 @@ post-processing produces useful and stable enough groupings for Graphify; commun
 membership need not be byte-for-byte identical to be valid, but user-visible behavior
 and output quality need review.
 
+### Clustering speed and memory decision
+
+Ladybug implements a parallelized Louvain algorithm based on Grappolo. That is a
+promising large-graph implementation because it operates over Ladybug’s projected
+graph rather than requiring the current Python NetworkX graph and its sorted duplicate
+used by `cluster.py`. Its projected graphs are evaluated from database storage on
+demand, which should reduce Python-object memory pressure. [Ladybug Louvain](https://docs.ladybugdb.com/extensions/algo/louvain/)
+
+That does not establish that Ladybug Louvain is categorically faster than Graphify’s
+preferred implementation. When the optional `graspologic` extra is installed,
+Graphify uses a Rust-native Leiden implementation; only when it is absent does it fall
+back to NetworkX Louvain. Leiden adds a refinement phase that guarantees connected
+communities, and its authors report benchmark results where Leiden is faster than
+Louvain as well as higher-quality. [graspologic Leiden](https://graspologic-org.github.io/graspologic/latest/reference/reference/partition.html)
+[Leiden algorithm study](https://www.nature.com/articles/s41598-019-41695-z)
+
+The initial clustering decision is therefore evidence-based:
+
+| Comparison | Why it is needed |
+| --- | --- |
+| Ladybug native Louvain vs. current `graspologic` Leiden | Determines the real speed, memory, and community-quality tradeoff when Graphify’s preferred implementation is available. |
+| Ladybug native Louvain vs. current NetworkX Louvain fallback | Establishes the benefit for installations that do not have the Leiden extra. |
+| Community quality and stability | Confirms that hub handling, re-splitting, stable IDs, labels, and incremental updates still produce useful Graphify navigation. |
+
+Measure wall-clock clustering time and peak process RSS using the same representative
+graph, plus number/size of communities, modularity or equivalent quality evidence,
+membership change after an incremental update, and downstream report/PR/export
+behavior. Ladybug Louvain is the candidate for the first native clustering path; it is
+not approved as the permanent replacement until these comparisons show that its
+large-project speed and memory profile justify any difference from Leiden.
+
 Current community membership is used for more than visualization:
 
 | Consumer | Current use of communities | Ladybug-mode design |
