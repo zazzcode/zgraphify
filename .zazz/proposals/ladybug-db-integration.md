@@ -50,6 +50,52 @@ in this discovery. Existing compatibility coverage remains in place; a later pro
 must explicitly expand the Ladybug corpus before claiming equivalent behavior for any
 of those input types.
 
+### Zazz documentation ingestion and bounded context
+
+Zazz Markdown is a primary retrieval corpus, not merely incidental documentation. The
+first document-focused use cases are standards and specifications, followed by feature,
+proposal, architecture, and project documents. The graph is an index over committed
+Markdown; the Markdown files remain the authoritative, reviewable source of truth.
+
+The existing Markdown extractor already creates a document node, heading nodes, and
+`contains`/local-document `references` edges. The Ladybug discovery must preserve that
+baseline and evaluate a Zazz-aware ingestion layer with these additional semantics:
+
+| Source construct | Candidate graph representation | Context-retrieval purpose |
+| --- | --- | --- |
+| A Markdown file | Document root node with `document_kind` such as standard, specification, feature, proposal, or architecture. | Select the correct durable artifact before reading prose. |
+| Heading hierarchy | Section nodes connected by `contains`, retaining source path and line range. | Return the smallest relevant section rather than an entire large document. |
+| Explicit specification acceptance criteria or phase headings | Typed nodes or typed section attributes, but only when the document uses an agreed, machine-readable heading or marker convention. | Find the applicable contract, phase, and verification intent without scanning unrelated sections. |
+| `.zazz/**/index.yaml` entry | A custom manifest-ingestion edge such as `indexes`, `routes_to`, or `governs` from the index entry to its declared document. | Make the current routing role of standards and other indexes queryable. |
+
+```mermaid
+flowchart LR
+    M["Zazz Markdown"] --> S["Structural document extraction"]
+    S --> D["Document and section nodes"]
+    I[".zazz index.yaml"] --> X["Zazz manifest ingestion"]
+    X --> R["Typed routing edges"]
+    D --> G["Ladybug graph engine"]
+    R --> G
+    A["Agent"] --> K["Native skill discovery"]
+    A --> Q["MCP bounded document query"]
+    Q --> G
+```
+
+Agent skills remain a separate concern. The host agent's native skill-discovery and
+instruction mechanisms choose which skill applies; the Ladybug graph need not recreate
+that selection mechanism in the first discovery scope. Skills can remain ordinary
+source documents in the baseline graph, but Zazz standards and specifications are the
+priority document corpus for performance and context tests.
+
+The proposed fork-level document-design rule is to keep durable Markdown under 500
+lines by splitting on stable conceptual boundaries. A large specification is not an
+exception to bounded retrieval: it should retain a document root and section hierarchy,
+then expose phases and acceptance criteria only where their syntax is explicit. The
+first custom ingestion must not infer an acceptance criterion from every bullet or
+invent a phase from arbitrary prose. A later standard or bounded specification must
+define the accepted Markdown markers, node identifiers, and line-range/source-citation
+contract before this becomes an enforced rule.
+
 ## LadybugDB Runtime and Packaging Deep Dive
 
 ### What an integration would install and run
