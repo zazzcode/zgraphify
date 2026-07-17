@@ -79,6 +79,44 @@ parameterized `CREATE` or `MERGE` statements; a large full rebuild can use the
 database's supported bulk-load mechanism once a safe staging boundary is defined.
 [Import overview](https://docs.ladybugdb.com/import/)
 
+### Memory model and the NetworkX decision
+
+LadybugDB is not memory-free. Its embedded `Database` object contains a buffer manager
+that caches recently read disk pages, and its query engine allocates working memory.
+The difference from the current NetworkX path is that an on-disk Ladybug database can
+process larger-than-memory workloads rather than requiring the complete graph to be
+represented as Python node, edge, and attribute objects. Ladybug also spills certain
+high-memory operations to temporary disk files. [On-disk persistence](https://docs.ladybugdb.com/get-started/)
+[Database internals](https://docs.ladybugdb.com/developer-guide/database-internal/)
+[Import memory behavior](https://docs.ladybugdb.com/import/)
+
+Current Graphify has two separate full-graph NetworkX lifecycles: construction uses
+`build_from_json()` and `build_merge()`, while `serve._load_graph()` rehydrates the
+entire node-link JSON graph for MCP and CLI queries. Clustering and analysis also use
+NetworkX algorithms. Therefore, merely writing the finished graph to Ladybug would
+not lower peak build memory; during that stage it can increase memory by holding a
+NetworkX graph and a Ladybug database in the same process.
+
+| Stage | NetworkX role | Memory assessment |
+| --- | --- | --- |
+| Current JSON backend | Build, clustering, analysis, and every served query use a full NetworkX graph. | Full graph is held as Python objects; serving also builds Python-side indexes. |
+| Ladybug storage only | Build still materializes NetworkX, then persists to Ladybug. | Likely higher build peak; may improve restart/query load only. Not sufficient as the performance goal. |
+| Ladybug read/query backend | Build may still use NetworkX, but served graph queries execute against Ladybug and return bounded result sets. | Removes the long-lived served NetworkX graph and its indexes; likely first meaningful query-memory reduction. |
+| Ladybug-native build target | Graphify streams or batches normalized node/edge records into Ladybug without creating a complete NetworkX graph. | Best chance of reducing peak build memory; requires a larger rewrite of build, update, clustering, and analysis boundaries. |
+
+The proposed end state for a Ladybug-selected project is that Ladybug replaces
+NetworkX for persisted state and supported read/query/traversal operations. NetworkX
+does not need to disappear in the first increment: it can remain an explicit,
+short-lived algorithm adapter for clustering or analysis until those operations are
+replaced, delegated, or proven unnecessary. It must not remain as an unbounded hidden
+copy of the same graph in the normal Ladybug query path.
+
+The adapter must use bounded writes and queries. In particular, it should avoid
+converting an entire Ladybug result to a Python list, DataFrame, or NetworkX graph
+when a query only needs a limited page or traversal frontier. Memory evidence must use
+process RSS, not only Python heap measurements, because Ladybug's native buffer and
+query allocations are outside Python object accounting.
+
 ### Concurrency and process lifecycle
 
 LadybugDB supports multiple connections from one read-write `Database` object, but
@@ -190,7 +228,9 @@ The spike should compare the JSON/NetworkX and optional Ladybug paths using the 
 representative corpora and cold/warm runs. Record at least graph-open latency,
 incremental-update duration, peak resident memory where practical, and representative
 `query`, `path`, and MCP request latency. Semantic parity and correctness remain gates;
-no benchmark target is proposed yet.
+no benchmark target is proposed yet. The measurements must distinguish build-time
+peak RSS from steady-state server RSS and state whether NetworkX was present in the
+measured process.
 
 ## Optional Backend Selection
 
@@ -230,6 +270,7 @@ different canonical store in routine development.
 | Ladybug package or platform constraints | Validate supported Python versions, wheel availability, disk layout, package size, and CI support in a disposable spike. |
 | Concurrent writer and reader processes contend for one database file | Choose and test an ownership or publication model before enabling watch or MCP access. |
 | Backend choice changes unexpectedly across shells or sessions | Make the project configuration authoritative; treat environment variables only as explicit, observable overrides. |
+| Ladybug mode still retains a full NetworkX graph | Treat that as a measured transitional state; do not claim a build-memory improvement until streaming or bounded algorithm adapters are in place. |
 | Schema cannot represent Graphify metadata or hyperedges cleanly | Prototype representative AST, semantic, directional, and hyperedge fixtures before committing to a canonical schema. |
 | Dual persisted representations diverge | Declare one authority per stage and add deterministic export/import validation. |
 | Database files are unsuitable for source control | Keep database runtime artifacts ignored; retain a portable JSON export policy for tests, fixtures, and sharing. |

@@ -75,6 +75,9 @@ can use this boundary without changing their observable behavior.
 - The dependency remains embedded and local-first, with no new required service.
 - Any claimed performance benefit is demonstrated with comparable JSON and Ladybug
   workloads; it is not inferred solely from the use of a database.
+- Ladybug query mode does not retain an unbounded NetworkX copy of the persisted graph
+  during normal served queries; any temporary NetworkX algorithm use is explicit and
+  measured.
 
 ## Discovery Status
 
@@ -88,6 +91,8 @@ No implementation specification, delivery schedule, or backend selection is defi
 - Do not introduce a required external graph server.
 - Do not assume the embedded database safely supports Graphify's current independent
   writer and reader processes without an explicit concurrency design.
+- Do not claim lower build memory while construction still holds complete NetworkX and
+  Ladybug representations of the same graph.
 - Do not create an implementation specification until the proposal selects a bounded
   first experiment.
 
