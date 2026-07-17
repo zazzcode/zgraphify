@@ -93,6 +93,50 @@ Typed fields should cover properties used in Cypher filters, joins, and ordering
 Less-stable metadata requires a schema decision during the discovery spike; it must
 not be silently discarded merely to fit a first table design.
 
+## Community Clustering Architecture
+
+Ladybug’s optional `algo` extension provides Louvain as a Cypher-exposed graph
+algorithm, alongside PageRank, connected-components, and k-core operations. The
+adapter creates a projected graph from the `Entity` and `RELATES_TO` tables, runs the
+algorithm against that projection, then stores the resulting community membership for
+the selected graph version. Projected graphs are connection-scoped and are evaluated
+from the database on demand rather than materialized as a complete in-memory graph.
+[Ladybug algo extension](https://docs.ladybugdb.com/extensions/algo/)
+
+```mermaid
+flowchart LR
+    D[("Entity + RELATES_TO")] --> P["Ladybug projected graph"]
+    P --> L["Native Louvain"]
+    L --> R["Membership results"]
+    R --> S["Graphify community adapter"]
+    S --> M["Persisted community ID / name"]
+    M --> U["Reports, MCP, PR impact, exports"]
+```
+
+The adapter is required because Graphify's present `cluster.py` behavior is more than
+raw Louvain: it prefers Leiden when `graspologic` is available, excludes and later
+reattaches hubs, re-splits oversized and low-cohesion communities, assigns stable
+community IDs, and derives fallback labels. Ladybug documents Louvain, not the
+current Leiden path. The discovery spike must prove whether a Ladybug projection plus
+post-processing produces useful and stable enough groupings for Graphify; community
+membership need not be byte-for-byte identical to be valid, but user-visible behavior
+and output quality need review.
+
+Current community membership is used for more than visualization:
+
+| Consumer | Current use of communities | Ladybug-mode design |
+| --- | --- | --- |
+| `GRAPH_REPORT.md` and labels | Summaries, named community sections, cohesion, and suggested questions. | Read persisted membership and labels through the engine adapter. |
+| MCP and CLI | `get_community`, graph statistics, node context, and surprise/question output. | Query community membership and aggregate counts directly in Ladybug. |
+| PR analysis | Maps changed files to communities to estimate blast radius and merge-order conflicts. | Filter `Entity.source_file` and aggregate persisted membership in Ladybug. |
+| Exports | JSON, HTML, Obsidian, Canvas, GraphML, wiki, and call-flow grouping. | Fetch only the nodes/edges/community groups required by each export; do not recreate the full graph by default. |
+| Incremental watch | Stabilizes community IDs and retains labels where membership is unchanged. | Preserve equivalent membership signatures and label-reuse logic in the engine adapter. |
+| Deduplication and reflection | Uses community context to constrain or organize results. | Expose bounded community lookup operations instead of a NetworkX graph. |
+
+The algorithm extension is an optional Ladybug capability. Its installation/loading
+policy, version pinning, projected-graph lifecycle, direction handling, and result
+determinism are all discovery requirements before clustering can leave NetworkX mode.
+
 ## Staged Engine Replacement
 
 These are technical transition boundaries, not milestones, dates, or implementation
