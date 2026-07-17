@@ -27,7 +27,7 @@ opens an on-disk database through `ladybug.Database(path)` and
 
 This proposal evaluates persistent storage and graph-query integration for Graphify
 graphs. It includes the graph lifecycle, schema mapping, migration safety, query
-compatibility, and the role of Parquet or another columnar interchange format.
+compatibility, persistence, and operational safety.
 
 It does not approve a dependency, remove NetworkX, define a deliverable
 specification, change the Graphify public CLI, or decide a product release plan.
@@ -59,7 +59,7 @@ could use `uv sync --extra ladybug`, while CLI users could use
 `uv tool install "graphifyy[ladybug]"`. These are proposed commands, not a change to
 the package contract yet.
 
-### Live database files versus Parquet
+### Live database files and management
 
 LadybugDB persists an on-disk database as a single database file, conventionally with
 an `.lbug` suffix. It creates transient sibling files such as write-ahead-log,
@@ -68,24 +68,16 @@ shadow, and temporary files while operating. Those runtime artifacts belong unde
 `graphify-out/graph.lbug`. Their lifecycle and backup behavior need explicit tests.
 [Database files](https://docs.ladybugdb.com/developer-guide/files/)
 
-The live store is therefore the `.lbug` database, not a Parquet file. Parquet remains
-valuable for bulk loading, portable snapshots, reproducible fixtures, and database
-export. LadybugDB supports `COPY FROM` for bulk import and database export that emits
-schema plus Parquet data by default. [Parquet import](https://docs.ladybugdb.com/import/parquet/)
-[Database migration](https://docs.ladybugdb.com/migrate/)
-
 Graphify would treat the `.lbug` file as an opaque database artifact. LadybugDB owns
 its internal columnar layout, compressed-sparse-row adjacency and join indexes, and
 transactional state; Graphify supplies typed graph records and receives query results.
 [Ladybug architecture overview](https://docs.ladybugdb.com/)
 
-The proposed runtime path does not require generating Parquet first. Graphify can
-create the typed node and relationship tables, then write the graph records it already
-builds through Ladybug's Python/Cypher API. A small update can use parameterized
-`CREATE` or `MERGE` statements; a large full rebuild can use the database's supported
-bulk-load mechanism once a safe staging boundary is defined. [Import overview](https://docs.ladybugdb.com/import/)
-Parquet should be evaluated only when its bulk throughput, portability, or recovery
-value justifies the additional serialization step.
+Graphify can create the typed node and relationship tables, then write the graph
+records it already builds through Ladybug's Python/Cypher API. A small update can use
+parameterized `CREATE` or `MERGE` statements; a large full rebuild can use the
+database's supported bulk-load mechanism once a safe staging boundary is defined.
+[Import overview](https://docs.ladybugdb.com/import/)
 
 ### Concurrency and process lifecycle
 
@@ -126,9 +118,9 @@ too broad for a first implementation.
 
 ## Target Backend Shape
 
-The preferred direction for discovery is a real optional data-store backend, not a
-Parquet conversion layer. With `storage_backend = "json"`, Graphify preserves today's
-JSON/NetworkX path. With `storage_backend = "ladybug"`, Graphify would build its
+The preferred direction for discovery is a real optional data-store backend. With
+`storage_backend = "json"`, Graphify preserves today's JSON/NetworkX path. With
+`storage_backend = "ladybug"`, Graphify would build its
 normal canonical records, persist them to `graphify-out/graph.lbug` through a storage
 adapter, and execute supported read operations through a Ladybug-backed query adapter.
 
@@ -138,21 +130,6 @@ Ladybug-selected project may still generate `graph.json` as an explicit compatib
 export for tools not yet moved to the adapter, but the database must be the selected
 backend's authoritative graph state. The implementation must record this choice in
 the generated output so a stale JSON file cannot be mistaken for the active store.
-
-## Data Format Clarification
-
-LadybugDB supports bulk import from and export to Parquet, and recommends Parquet for
-large bulk imports. It can also export an entire database into schema plus data files,
-using Parquet by default. [Parquet import](https://docs.ladybugdb.com/import/parquet/)
-[Database migration](https://docs.ladybugdb.com/migrate/)
-
-That does **not** establish Parquet as the live Graphify data store. LadybugDB’s
-on-disk database has its own persistent storage and transaction model. Parquet is a
-strong candidate for reproducible snapshots, bulk bootstrap, interchange, and backup
-artifacts; it should not be assumed to replace the active database without a separate
-decision. Ladybug also documents query-in-place support for some external columnar
-sources, which may be useful later but does not remove the need to model Graphify’s
-incremental updates. [External-data scanning](https://docs.ladybugdb.com/get-started/scan/)
 
 ## Candidate Data Model
 
@@ -181,7 +158,6 @@ validated against the installed version before a specification is written.
 | Optional Ladybug backend | Select Ladybug per project; write its database directly and query it through an adapter, while retaining JSON as the default backend. | Matches the intended user experience and enables meaningful end-to-end performance tests. | Requires clear backend metadata, compatibility exports while callers migrate, and a complete update/read contract. |
 | Ladybug as canonical store with JSON compatibility export | Make Ladybug authoritative while regenerating JSON for legacy consumers and portable artifacts. | Stronger transactional model and database-native traversal potential; controlled migration path. | Requires a storage abstraction and updates across all direct JSON readers; snapshot/export contract must be designed. |
 | Ladybug-only replacement | Remove the canonical JSON graph and make every read surface database-native. | Eliminates duplicate persisted graph state after migration. | Highest risk; broad compatibility break; difficult to stage and verify. |
-| Parquet-first graph store | Persist nodes and edges as Parquet and query through an engine or Ladybug external tables. | Columnar, portable bulk snapshots. | Does not naturally cover graph traversal, incremental replacement, transactional writes, or the current query semantics. |
 
 ## Tradeoff Analysis
 
@@ -256,7 +232,7 @@ different canonical store in routine development.
 | Backend choice changes unexpectedly across shells or sessions | Make the project configuration authoritative; treat environment variables only as explicit, observable overrides. |
 | Schema cannot represent Graphify metadata or hyperedges cleanly | Prototype representative AST, semantic, directional, and hyperedge fixtures before committing to a canonical schema. |
 | Dual persisted representations diverge | Declare one authority per stage and add deterministic export/import validation. |
-| Database files are unsuitable for source control | Keep database runtime artifacts ignored; retain a portable JSON or Parquet export policy for tests, fixtures, and sharing. |
+| Database files are unsuitable for source control | Keep database runtime artifacts ignored; retain a portable JSON export policy for tests, fixtures, and sharing. |
 | Upstream divergence | Keep this investigation fork-owned. Any generally useful, isolated integration can later be recreated from `upstream/v8` for upstream review. |
 
 ## Recommendation
@@ -272,8 +248,7 @@ artifact for the existing default backend and as a parity/export artifact during
 development. For a Ladybug-selected project, the experiment should write the `.lbug`
 database directly and run one bounded query path through it. If it demonstrates query
 and update parity plus operational benefit, the next proposal revision can select the
-first production-facing backend boundary. Do not select Parquet as the active store in
-advance; assess it separately as a bulk/snapshot interchange format.
+first production-facing backend boundary.
 
 ## Approval Questions
 
@@ -299,16 +274,13 @@ advance; assess it separately as a bulk/snapshot interchange format.
   serving against the same database path?
 - What version upgrade/export/import policy protects existing user graphs?
 - Which concurrency model is acceptable for simultaneous watch, CLI, and MCP use?
-- Which Parquet or database export artifacts are appropriate for Git, cache, and
-  user-facing backup workflows?
+- Which database export artifacts are appropriate for Git, cache, and user-facing
+  backup workflows?
 
 ## Discussion Log
 
 - The owner requested an open-ended investigation into replacing the existing graph
   data store with LadybugDB.
-- The owner raised Parquet or another columnar format as a likely data-content store;
-  this proposal records it as an interchange/snapshot hypothesis rather than an
-  assumed live-store design.
 - The owner prefers an optional, project-persistent data-store selection over a
   session-scoped environment variable, with performance as a required validation
   hypothesis and richer query capability as the motivating value.

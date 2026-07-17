@@ -48,8 +48,6 @@ does not change storage formats unexpectedly across CLI, watch, CI, and MCP sess
   a persistence backend.
 - **Source ownership:** The `source_file` basis for replacing changed-file records and
   pruning deleted-file records during incremental updates.
-- **Parquet interchange:** A potential bulk-import, backup, or archival format; not
-  an assumed live graph-store format.
 - **Optional backend selection:** A durable per-project setting that selects JSON or
   LadybugDB and makes the resulting canonical artifact unambiguous.
 
@@ -87,7 +85,6 @@ No implementation specification, delivery schedule, or backend selection is defi
 ## Constraints and Non-Goals
 
 - Do not remove NetworkX, `graph.json`, or existing CLI/MCP behavior during discovery.
-- Do not assume Parquet is LadybugDB’s live storage format.
 - Do not introduce a required external graph server.
 - Do not assume the embedded database safely supports Graphify's current independent
   writer and reader processes without an explicit concurrency design.
