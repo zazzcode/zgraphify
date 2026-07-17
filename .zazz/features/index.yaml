@@ -1,1 +1,5 @@
-features: []
+features:
+  - key: ladybug-db-integration
+    title: LadybugDB Integration
+    path: ladybug-db-integration.md
+    status: discovery
