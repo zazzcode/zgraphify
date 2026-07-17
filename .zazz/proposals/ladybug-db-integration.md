@@ -190,6 +190,7 @@ The decision gate for this direction is evidence, not a presumed database advant
 | --- | --- |
 | Memory | Lower or bounded peak/steady-state process RSS for a representative workload, with no full NetworkX graph in the measured normal path. |
 | Performance | Comparable or better cold/warm query and update performance for the selected workloads. |
+| Agent payload | The same MCP tool call for the same fixture produces compatible, bounded output and does not require more agent turns or materially more input/output tokens. Token reduction is not a required benefit. |
 | Correctness | Fixture-based parity for graph content, incremental replace/prune behavior, query results, and output contracts. |
 | Operations | Safe database ownership, recovery, locking, and backend-selection behavior for CLI, watch, and MCP use. |
 
@@ -304,12 +305,34 @@ dual-write backend may initially be slower because it writes both stores. The pr
 must therefore treat performance as a measured hypothesis, not an assumed outcome.
 
 The spike should compare the JSON/NetworkX and optional Ladybug paths using the same
-representative corpora and cold/warm runs. Record at least graph-open latency,
-incremental-update duration, peak resident memory where practical, and representative
-`query`, `path`, and MCP request latency. Semantic parity and correctness remain gates;
-no benchmark target is proposed yet. The measurements must distinguish build-time
-peak RSS from steady-state server RSS and state whether NetworkX was present in the
-measured process.
+representative corpora and cold/warm runs. The primary decision axes are process memory
+and response speed: record graph-open latency, incremental-update duration, peak
+resident memory, steady-state server RSS, and cold/warm `query`, `path`, and MCP
+request latency. Semantic parity and correctness remain gates; no benchmark target is
+proposed yet. Each result must state whether NetworkX was present in the measured
+process.
+
+### Measurement rubric and non-intrusive instrumentation
+
+The benchmark harness records measurements outside the graph-result payload. It may
+capture a monotonic start/end time, process RSS (including native allocations), engine
+selection, graph size, cold/warm state, and a stable workload identifier. It must not
+append diagnostic text, timings, or memory values to CLI or MCP responses, nor alter
+the existing MCP tool schema. Instrumentation is disabled by default in ordinary use
+and, when enabled for a benchmark, writes structured local evidence separately from
+the response path.
+
+| Priority | Measure | Comparison rule |
+| --- | --- | --- |
+| Primary | Peak RSS for build/update; steady-state RSS for the long-lived MCP server; request-local allocation where practical. | Compare identical corpus, operation, engine configuration, and process mode. Report RSS rather than Python heap alone. |
+| Primary | Cold and warm response latency for `query_graph`, `get_node`, `get_neighbors`, `get_community`, and `shortest_path`; include p50 and p95 across repeated runs. | A Ladybug improvement must not trade a faster median for unacceptable tail latency. Separate database-open time from an already-warm server request. |
+| Guardrail | Agent token utilization: number of tool calls, request tokens, response tokens, and total tool payload for a fixed set of agent tasks. | Preserve the MCP contract and bounded-response behavior. Ladybug need not reduce tokens, but it must not materially increase tool turns or payload for equivalent answers. |
+| Gate | Observable answer and graph-result correctness. | Run the same fixtures and task prompts through both engines; review source citations, ordering/budget behavior, paths, and community results. |
+
+The primary memory and latency measurements are the reason to build this integration.
+Token use is a non-regression guardrail, not a claimed performance win: if the stable
+MCP contract yields the same bounded output, the agent-token profile should remain
+substantially unchanged while the server uses less memory or answers more quickly.
 
 ## Pre-Implementation Viability Assessment
 
@@ -350,7 +373,8 @@ actual graph sizes, edge density, query mix, platform wheels, or ingestion overh
 for Zgraphify users. The discovery spike must therefore benchmark the same
 representative corpus under both engines before any default changes. The go/no-go
 decision should distinguish query-server RSS, build peak RSS, cold query latency, warm
-query latency, incremental-update duration, and output parity.
+query latency, incremental-update duration, output parity, and MCP tool-payload
+non-regression.
 
 ## Optional Graph-Engine Selection
 

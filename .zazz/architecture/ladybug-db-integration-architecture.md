@@ -264,8 +264,12 @@ and performance evidence.
 - **Compatibility:** `graph.json` may be generated for legacy consumers during
   migration, but is not authoritative in Ladybug mode. It must not cause a hidden
   NetworkX reload in normal Ladybug operation.
-- **Observability:** Record the selected engine, graph counts, operation timing, and
-  process RSS in benchmark evidence. Do not report Python heap alone as memory use.
+- **Observability:** Benchmark-only instrumentation records engine, graph counts,
+  workload ID, cold/warm state, monotonic operation timing, and process RSS (not
+  Python heap alone) outside the agent-visible response. It must not alter MCP tool
+  schemas or append diagnostics to an MCP/CLI result. Compare compatible MCP tool
+  payload size and tool-turn count as a token non-regression guardrail; token savings
+  are not a Ladybug success criterion.
 
 ## Open Architecture Questions
 

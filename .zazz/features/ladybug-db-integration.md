@@ -85,6 +85,9 @@ can use this boundary without changing their observable behavior.
   explicit, bounded, and measured.
 - Ladybug replaces NetworkX completely in the selected engine mode only after memory,
   performance, correctness, and operational evidence supports each staged increment.
+- The existing MCP contract remains compatible; equivalent agent tasks do not require
+  materially more tool calls or response payload tokens in Ladybug mode. Token savings
+  are not required for approval.
 
 ## Discovery Status
 
