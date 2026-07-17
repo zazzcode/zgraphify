@@ -1,5 +1,5 @@
-features:
+architectures:
   - key: ladybug-db-integration
     title: LadybugDB Graph Engine Replacement
-    path: ladybug-db-integration.md
+    path: ladybug-db-integration-architecture.md
     status: discovery

@@ -1,8 +1,8 @@
-# Proposal: LadybugDB Graph Store Integration
+# Proposal: LadybugDB Graph Engine Replacement
 
 **Status:** Discovery — no implementation decision approved
 **Scope:** Technical-direction proposal and feature discovery
-**Related feature:** [LadybugDB integration](../features/ladybug-db-integration.md)
+**Related feature:** [LadybugDB graph engine replacement](../features/ladybug-db-integration.md)
 
 ## Context and Problem Statement
 
@@ -17,7 +17,7 @@ NetworkX rehydration for graph operations. It also makes updates, query planning
 indexes, and transactional durability application-level responsibilities.
 
 This proposal investigates whether [LadybugDB](https://github.com/LadybugDB/ladybug)
-should become a graph persistence and query backend for fork-owned Graphify work.
+should become the graph engine for a Ladybug-selected fork-owned Graphify project.
 LadybugDB is an embedded, on-disk property-graph database with Cypher, columnar
 disk storage, adjacency indexes, ACID transactions, and a Python API. Its Python API
 opens an on-disk database through `ladybug.Database(path)` and
@@ -25,12 +25,14 @@ opens an on-disk database through `ladybug.Database(path)` and
 
 ## Scope
 
-This proposal evaluates persistent storage and graph-query integration for Graphify
-graphs. It includes the graph lifecycle, schema mapping, migration safety, query
-compatibility, persistence, and operational safety.
+This proposal evaluates replacing Graphify's NetworkX graph engine with LadybugDB for
+an opt-in backend. It includes graph construction, incremental updates, persistence,
+querying, clustering and analysis boundaries, migration safety, compatibility, and
+operational safety.
 
-It does not approve a dependency, remove NetworkX, define a deliverable
-specification, change the Graphify public CLI, or decide a product release plan.
+It does not approve a dependency, define a deliverable specification, change the
+Graphify public CLI, or decide a product release plan. NetworkX remains the engine for
+the default JSON backend unless and until a Ladybug mode is approved.
 
 ## LadybugDB Runtime and Packaging Deep Dive
 
@@ -117,6 +119,52 @@ when a query only needs a limited page or traversal frontier. Memory evidence mu
 process RSS, not only Python heap measurements, because Ladybug's native buffer and
 query allocations are outside Python object accounting.
 
+## Preferred Ladybug-Mode Architecture
+
+Subject to the discovery evidence below, the preferred direction is a genuine
+replacement, not permanent dual operation: selecting `graph_engine = "ladybug"`
+means Ladybug is the authoritative graph engine for normal build, update, query, and
+traversal operation. Graphify should not construct a complete NetworkX graph merely
+to populate or query the selected Ladybug database.
+
+```text
+extractors -> normalized graph records -> Ladybug write/update adapter
+                                             |
+                                             v
+                                    graphify-out/graph.lbug
+                                             |
+                                             v
+                              Ladybug/Cypher read-query adapter -> CLI / MCP
+```
+
+This does not remove the existing JSON/NetworkX backend. A project selecting
+`graph_engine = "networkx"` retains today’s behavior. The Ladybug engine replacement
+is implemented in stages, but the intended end state is complete: clustering, analysis,
+rendering, diagnostics, global graphs, and exports use Ladybug-native operations or
+engine adapters rather than a complete NetworkX graph. A temporary NetworkX projection
+may be used only for a bounded, explicitly measured capability while its replacement
+is developed; it cannot become a permanent normal Ladybug-mode path.
+
+The replacement is viable because Ladybug provides a typed property-graph schema,
+Cypher, on-disk persistence, and graph-oriented indexes. It is not a drop-in type
+substitution: Graphify's NetworkX operations in construction, clustering, analysis,
+rendering, diagnostics, global graphs, and tests need graph-engine adapters or
+equivalent implementations. The implementation must preserve existing graph identity,
+edge direction, source ownership, hyperedges, query-ranking behavior, and CLI/MCP
+output contracts. [Ladybug overview](https://docs.ladybugdb.com/)
+
+The decision gate for this direction is evidence, not a presumed database advantage:
+
+| Gate | Required evidence before Ladybug replaces NetworkX for that path |
+| --- | --- |
+| Memory | Lower or bounded peak/steady-state process RSS for a representative workload, with no full NetworkX graph in the measured normal path. |
+| Performance | Comparable or better cold/warm query and update performance for the selected workloads. |
+| Correctness | Fixture-based parity for graph content, incremental replace/prune behavior, query results, and output contracts. |
+| Operations | Safe database ownership, recovery, locking, and backend-selection behavior for CLI, watch, and MCP use. |
+
+If those gates do not hold, the JSON/NetworkX backend remains the appropriate default
+and Ladybug should not be presented as a memory or performance improvement.
+
 ### Concurrency and process lifecycle
 
 LadybugDB supports multiple connections from one read-write `Database` object, but
@@ -140,13 +188,13 @@ single-process use correct before it expands to watch or shared HTTP MCP operati
 
 | Concern | Current implementation | LadybugDB implication |
 | --- | --- | --- |
-| Graph construction | `graphify.build.build_from_json()` builds a NetworkX graph from extraction records. | Preserve the extraction contract first; add a mapper from canonical records to a Ladybug schema. |
-| Incremental rebuild | `graphify.build.build_merge()` reads prior `graph.json`, replaces source-owned records, and prunes deleted sources. | The replacement and prune semantics need transactional equivalents keyed by `source_file`. |
-| Primary persistence | `graphify.export.to_json()` writes NetworkX node-link JSON atomically and applies a node-count shrink guard. | Define the database location, transaction boundary, backup policy, and an equivalent incomplete-build guard. |
-| Query and MCP serving | `graphify.serve._load_graph()` loads JSON into NetworkX; query ranking and BFS traversal run in Python. | A database alone does not preserve ranking behavior. Decide which operations move to Cypher and which remain in Python. |
-| CLI tools | `query`, `path`, `explain`, `tree`, merge operations, and diagnostics read the JSON graph. | Introduce a storage boundary before converting callers; preserve the current CLI contract during migration. |
-| Derived artifacts | HTML, call-flow HTML, reports, labels, and the learning overlay use JSON or NetworkX. | Keep `graph.json` as a compatibility/export projection initially, or provide a common read model. |
-| Global and PR analysis | `global_graph.py`, `prs.py`, and `affected.py` load node-link JSON. | Define whether these stay JSON-based, obtain a snapshot from Ladybug, or receive database-native adapters. |
+| Graph construction | `graphify.build.build_from_json()` builds a NetworkX graph from extraction records. | Replace normal Ladybug-mode construction with bounded direct writes from normalized extraction records. |
+| Incremental rebuild | `graphify.build.build_merge()` reads prior `graph.json`, replaces source-owned records, and prunes deleted sources. | Implement transactional replacement and pruning keyed by `source_file`; do not rehydrate a NetworkX graph. |
+| Primary persistence | `graphify.export.to_json()` writes NetworkX node-link JSON atomically and applies a node-count shrink guard. | Make `graph.lbug` authoritative and provide equivalent transaction, incomplete-build, and recovery guards. |
+| Query and MCP serving | `graphify.serve._load_graph()` loads JSON into NetworkX; query ranking and BFS traversal run in Python. | Replace the normal load/traversal path with Ladybug queries; retain only bounded Python ranking where parity requires it. |
+| CLI tools | `query`, `path`, `explain`, `tree`, merge operations, and diagnostics read the JSON graph. | Route through a graph-engine interface and preserve the current CLI contract while implementations migrate. |
+| Derived artifacts | HTML, call-flow HTML, reports, labels, and the learning overlay use JSON or NetworkX. | Replace each read with a Ladybug engine adapter or an explicit compatibility export; no hidden full graph load. |
+| Global and PR analysis | `global_graph.py`, `prs.py`, and `affected.py` load node-link JSON. | Replace with Ladybug engine adapters or explicitly scoped compatibility exports. |
 | Hyperedges and provenance | The current graph carries graph-level `hyperedges`, directional edge metadata, source provenance, and confidence. | Model hyperedges explicitly and preserve all metadata before considering database-native queries. |
 
 The direct JSON readers are concentrated in `build.py`, `export.py`, `serve.py`,
@@ -154,20 +202,20 @@ The direct JSON readers are concentrated in `build.py`, `export.py`, `serve.py`,
 `tree_html.py`, and `reflect.py`. This makes a direct replacement of one file format
 too broad for a first implementation.
 
-## Target Backend Shape
+## Target Graph-Engine Shape
 
-The preferred direction for discovery is a real optional data-store backend. With
-`storage_backend = "json"`, Graphify preserves today's JSON/NetworkX path. With
-`storage_backend = "ladybug"`, Graphify would build its
-normal canonical records, persist them to `graphify-out/graph.lbug` through a storage
-adapter, and execute supported read operations through a Ladybug-backed query adapter.
+The preferred direction for discovery is an optional graph-engine backend, not a
+storage-only change. With `graph_engine = "networkx"`, Graphify preserves today's
+JSON/NetworkX path. With `graph_engine = "ladybug"`, Graphify would write normalized
+graph records to `graphify-out/graph.lbug` and use Ladybug-backed construction,
+incremental update, read/query, and traversal adapters.
 
-During development, a test-only dual-write path can generate both representations for
-parity comparison. It should not become a permanent production requirement. A
+During development, a test-only dual-engine path can generate or compare both
+representations for parity. It must not become a permanent production requirement. A
 Ladybug-selected project may still generate `graph.json` as an explicit compatibility
-export for tools not yet moved to the adapter, but the database must be the selected
-backend's authoritative graph state. The implementation must record this choice in
-the generated output so a stale JSON file cannot be mistaken for the active store.
+export for tools not yet moved to the engine interface, but `graph.lbug` is the
+authoritative graph state. The implementation must record this choice in generated
+output so a stale JSON file cannot be mistaken for the active engine.
 
 ## Candidate Data Model
 
@@ -192,16 +240,16 @@ validated against the installed version before a specification is written.
 | Option | Description | Advantages | Costs and risks |
 | --- | --- | --- | --- |
 | Retain JSON and NetworkX | Keep the present canonical `graph.json` model. | Lowest implementation risk; all existing tools stay unchanged; transparent Git artifact. | Full-file load and in-process traversal remain; no database indexes or transactions. |
-| Ladybug projection beside JSON | Keep JSON canonical initially; write and validate a Ladybug projection for selected query paths. | Reversible, supports parity testing, isolates schema work, and preserves all existing tools. | Dual-write complexity; must detect divergence; benefits are delayed. |
-| Optional Ladybug backend | Select Ladybug per project; write its database directly and query it through an adapter, while retaining JSON as the default backend. | Matches the intended user experience and enables meaningful end-to-end performance tests. | Requires clear backend metadata, compatibility exports while callers migrate, and a complete update/read contract. |
-| Ladybug as canonical store with JSON compatibility export | Make Ladybug authoritative while regenerating JSON for legacy consumers and portable artifacts. | Stronger transactional model and database-native traversal potential; controlled migration path. | Requires a storage abstraction and updates across all direct JSON readers; snapshot/export contract must be designed. |
-| Ladybug-only replacement | Remove the canonical JSON graph and make every read surface database-native. | Eliminates duplicate persisted graph state after migration. | Highest risk; broad compatibility break; difficult to stage and verify. |
+| Ladybug storage-only integration | Keep NetworkX as the normal engine and persist a Ladybug copy. | Small initial code change. | Higher peak memory and no complete graph-engine benefit; not the preferred direction. |
+| Staged Ladybug engine replacement | Select Ladybug per project, then replace build, update, query, algorithms, and outputs through bounded increments. | Reaches the memory/performance goal while preserving a fallback and parity gates. | Broad adapter/rewrite effort; each increment needs compatibility evidence. |
+| Immediate all-at-once replacement | Replace every NetworkX use in one change. | No transitional paths after merge. | Unreviewable risk and weak ability to isolate regressions; not recommended. |
 
 ## Tradeoff Analysis
 
-The key choice is not JSON versus a columnar file. It is whether Graphify’s canonical
-graph state should stay a portable node-link document, become an embedded database, or
-temporarily exist in both forms while compatibility is proven.
+The key choice is whether Graphify’s graph engine remains NetworkX or becomes
+LadybugDB for an explicitly selected backend. A database file alone does not deliver
+the intended outcome; the replacement must move graph construction and operations out
+of the full in-memory NetworkX lifecycle.
 
 Ladybug is best aligned with structural graph traversal and analytical workloads. The
 current query layer, however, includes Python-side fuzzy matching, token scoring,
@@ -232,27 +280,26 @@ no benchmark target is proposed yet. The measurements must distinguish build-tim
 peak RSS from steady-state server RSS and state whether NetworkX was present in the
 measured process.
 
-## Optional Backend Selection
+## Optional Graph-Engine Selection
 
-The intended product direction is an optional persistent-store backend: users can
-retain the current JSON/NetworkX behavior or deliberately select LadybugDB for a
-project. A project-persistent configuration is preferable to a lone environment
-variable because it makes the chosen graph format stable across shells, CI, watch
-processes, and MCP sessions.
+The intended product direction is an optional graph-engine backend: users can retain
+the current JSON/NetworkX behavior or deliberately select LadybugDB for a project. A
+project-persistent configuration is preferable to a lone environment variable because
+it makes the chosen engine stable across shells, CI, watch processes, and MCP sessions.
 
 The first design should introduce a committed, project-scoped configuration source
-with an explicit value such as `storage_backend = "json"` or
-`storage_backend = "ladybug"`. The file name, command-line override, and exact
-default remain open decisions; the configuration should be read once per invocation,
-record the backend used in generated artifacts, and fail clearly when the optional
-Ladybug dependency is absent. An environment variable may later be useful as an
-explicit temporary override for CI or benchmarking, but must not silently select a
-different canonical store in routine development.
+with an explicit value such as `graph_engine = "networkx"` or
+`graph_engine = "ladybug"`. The file name, command-line override, and exact default
+remain open decisions; the configuration should be read once per invocation, record
+the engine used in generated artifacts, and fail clearly when the optional Ladybug
+dependency is absent. An environment variable may later be useful as an explicit
+temporary override for CI or benchmarking, but must not silently select a different
+graph engine in routine development.
 
 ## Standards and Constraints
 
-- [Code structure](../standards/code-structure.md) favors an explicit storage seam
-  over broad rewrites or a parallel unstructured implementation.
+- [Code structure](../standards/code-structure.md) favors an explicit graph-engine
+  seam over broad rewrites or a parallel unstructured implementation.
 - [Python testing](../standards/python-testing.md) requires behavior-focused tests;
   parity fixtures should prove that a known graph yields equivalent observable results.
 - [PR process](../standards/pr-process.md) requires one logical change per review;
@@ -278,18 +325,19 @@ different canonical store in routine development.
 
 ## Recommendation
 
-Approve a bounded discovery spike before selecting a production backend. The spike
-should implement a small storage adapter boundary and prove that one representative
-graph can round-trip between current extraction records and a local Ladybug database
-without losing identity, direction, confidence, source ownership, communities, or
-hyperedges.
+Approve a bounded discovery spike before approving the Ladybug graph-engine
+replacement. The spike should implement a small direct-build, direct-update, and
+direct-read engine boundary and prove that one representative graph can move from
+current extraction records into a local Ladybug database without a full NetworkX graph
+in normal Ladybug-mode build, update, or query execution. It must not lose identity,
+direction, confidence, source ownership, communities, or hyperedges.
 
-The initial experiment should retain `graph.json` as the canonical compatibility
-artifact for the existing default backend and as a parity/export artifact during
-development. For a Ladybug-selected project, the experiment should write the `.lbug`
-database directly and run one bounded query path through it. If it demonstrates query
-and update parity plus operational benefit, the next proposal revision can select the
-first production-facing backend boundary.
+The initial experiment should retain `graph.json` for the existing default backend and
+as a parity/export artifact during development. For a Ladybug-selected project, the
+experiment should write the `.lbug` database directly and run one bounded graph
+operation through it without NetworkX. If it demonstrates query and update parity plus
+operational benefit, the next proposal revision can select the first production-facing
+engine increment.
 
 ## Approval Questions
 
@@ -320,9 +368,9 @@ first production-facing backend boundary.
 
 ## Discussion Log
 
-- The owner requested an open-ended investigation into replacing the existing graph
-  data store with LadybugDB.
-- The owner prefers an optional, project-persistent data-store selection over a
+- The owner requested an open-ended investigation into replacing the existing
+  NetworkX graph engine with LadybugDB.
+- The owner prefers an optional, project-persistent graph-engine selection over a
   session-scoped environment variable, with performance as a required validation
   hypothesis and richer query capability as the motivating value.
 
