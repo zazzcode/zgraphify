@@ -155,17 +155,19 @@ query allocations are outside Python object accounting.
 Subject to the discovery evidence below, the preferred direction is a genuine
 replacement, not permanent dual operation: selecting `graph_engine = "ladybug"`
 means Ladybug is the authoritative graph engine for normal build, update, query, and
-traversal operation. Graphify should not construct a complete NetworkX graph merely
+traversal operations. Graphify should not construct a complete NetworkX graph merely
 to populate or query the selected Ladybug database.
 
-```text
-extractors -> normalized graph records -> Ladybug write/update adapter
-                                             |
-                                             v
-                                    graphify-out/graph.lbug
-                                             |
-                                             v
-                              Ladybug/Cypher read-query adapter -> CLI / MCP
+```mermaid
+flowchart LR
+    E["Extractors"] --> N["Normalized graph records"]
+    N --> F["Graph-engine facade"]
+    F --> W["Bounded Ladybug write / update adapter"]
+    W --> D[("graphify-out/graph.lbug")]
+    A["CLI / MCP"] --> Q["Ladybug read / query adapter"]
+    D --> Q
+    Q --> R["Bounded compatible graph results"]
+    F -. "explicit compatibility export only" .-> J["graph.json"]
 ```
 
 This does not remove the existing JSON/NetworkX backend. A project selecting
@@ -183,6 +185,12 @@ rendering, diagnostics, global graphs, and tests need graph-engine adapters or
 equivalent implementations. The implementation must preserve existing graph identity,
 edge direction, source ownership, hyperedges, query-ranking behavior, and CLI/MCP
 output contracts. [Ladybug overview](https://docs.ladybugdb.com/)
+
+During development, a test-only dual-engine path may generate or compare both
+representations for parity. It must not become a production requirement. In Ladybug
+mode, `graph.lbug` is authoritative; `graph.json` may be generated only as an
+explicit compatibility artifact, with the selected engine recorded so a stale JSON
+file cannot be mistaken for active graph state.
 
 The decision gate for this direction is evidence, not a presumed database advantage:
 
@@ -233,21 +241,6 @@ The direct JSON readers are concentrated in `build.py`, `export.py`, `serve.py`,
 `watch.py`, `cli.py`, `global_graph.py`, `affected.py`, `prs.py`, `callflow_html.py`,
 `tree_html.py`, and `reflect.py`. This makes a direct replacement of one file format
 too broad for a first implementation.
-
-## Target Graph-Engine Shape
-
-The preferred direction for discovery is an optional graph-engine backend, not a
-storage-only change. With `graph_engine = "networkx"`, Graphify preserves today's
-JSON/NetworkX path. With `graph_engine = "ladybug"`, Graphify would write normalized
-graph records to `graphify-out/graph.lbug` and use Ladybug-backed construction,
-incremental update, read/query, and traversal adapters.
-
-During development, a test-only dual-engine path can generate or compare both
-representations for parity. It must not become a permanent production requirement. A
-Ladybug-selected project may still generate `graph.json` as an explicit compatibility
-export for tools not yet moved to the engine interface, but `graph.lbug` is the
-authoritative graph state. The implementation must record this choice in generated
-output so a stale JSON file cannot be mistaken for the active engine.
 
 ## Candidate Data Model
 
@@ -328,6 +321,17 @@ the response path.
 | Primary | Cold and warm response latency for `query_graph`, `get_node`, `get_neighbors`, `get_community`, and `shortest_path`; include p50 and p95 across repeated runs. | A Ladybug improvement must not trade a faster median for unacceptable tail latency. Separate database-open time from an already-warm server request. |
 | Guardrail | Agent token utilization: number of tool calls, request tokens, response tokens, and total tool payload for a fixed set of agent tasks. | Preserve the MCP contract and bounded-response behavior. Ladybug need not reduce tokens, but it must not materially increase tool turns or payload for equivalent answers. |
 | Gate | Observable answer and graph-result correctness. | Run the same fixtures and task prompts through both engines; review source citations, ordering/budget behavior, paths, and community results. |
+
+```mermaid
+flowchart LR
+    C["Comparable corpus and task set"] --> N["NetworkX baseline run"]
+    C --> L["Ladybug-mode run"]
+    N --> M["Out-of-band measurement capture"]
+    L --> M
+    M --> G{"Memory, latency, payload, and parity gates"}
+    G -->|"all hold"| S["Advance to a bounded implementation specification"]
+    G -->|"a gate fails"| K["Keep NetworkX default and revise or stop the proposal"]
+```
 
 The primary memory and latency measurements are the reason to build this integration.
 Token use is a non-regression guardrail, not a claimed performance win: if the stable
