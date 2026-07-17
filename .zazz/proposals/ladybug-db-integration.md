@@ -87,6 +87,14 @@ that selection mechanism in the first discovery scope. Skills can remain ordinar
 source documents in the baseline graph, but Zazz standards and specifications are the
 priority document corpus for performance and context tests.
 
+The document-retrieval contract should be additive to the existing MCP surface, not a
+generic raw-Cypher escape hatch for agents. A later bounded specification can define a
+tool such as `get_document_section`, accepting a document identity or repository path,
+an explicit heading/section identity, and a strict response budget. It should return
+the smallest complete applicable section with its source path and line range. An agent
+or subagent can then retrieve the relevant specification phase and the applicable
+standards sections instead of loading every related document into its context.
+
 The proposed fork-level document-design rule is to keep durable Markdown under 500
 lines by splitting on stable conceptual boundaries. A large specification is not an
 exception to bounded retrieval: it should retain a document root and section hierarchy,
@@ -260,7 +268,7 @@ The decision gate for this direction is evidence, not a presumed database advant
 | --- | --- |
 | Memory | Lower or bounded peak/steady-state process RSS for a representative workload, with no full NetworkX graph in the measured normal path. |
 | Performance | Comparable or better cold/warm query and update performance for the selected workloads. |
-| Agent payload | The same MCP tool call for the same fixture produces compatible, bounded output and does not require more agent turns or materially more input/output tokens. Token reduction is not a required benefit. |
+| Agent context | Existing MCP graph tools retain compatible, bounded output without materially more turns or tool payload. For the Zazz document corpus, section retrieval should demonstrate lower agent-visible context than reading the full candidate documents while preserving task-relevant content. |
 | Correctness | Fixture-based parity for graph content, incremental replace/prune behavior, query results, and output contracts. |
 | Operations | Safe database ownership, recovery, locking, and backend-selection behavior for CLI, watch, and MCP use. |
 
@@ -397,7 +405,7 @@ the response path.
 | --- | --- | --- |
 | Primary | Peak RSS for build/update; steady-state RSS for the long-lived MCP server; request-local allocation where practical. | Compare identical corpus, operation, engine configuration, and process mode. Report RSS rather than Python heap alone. |
 | Primary | Cold and warm response latency for `query_graph`, `get_node`, `get_neighbors`, `get_community`, and `shortest_path`; include p50 and p95 across repeated runs. | A Ladybug improvement must not trade a faster median for unacceptable tail latency. Separate database-open time from an already-warm server request. |
-| Guardrail | Agent token utilization: number of tool calls, request tokens, response tokens, and total tool payload for a fixed set of agent tasks. | Preserve the MCP contract and bounded-response behavior. Ladybug need not reduce tokens, but it must not materially increase tool turns or payload for equivalent answers. |
+| Secondary outcome | Agent context utilization: tool-call count, request tokens, response tokens, and total retrieved payload for fixed code and Zazz-document tasks. | Preserve the existing MCP contract and bounded-response behavior. Compare full-document reading, current Graphify query output, and proposed section retrieval; section retrieval should reduce context without withholding material requirements or standards. |
 | Gate | Observable answer and graph-result correctness. | Run the same fixtures and task prompts through both engines; review source citations, ordering/budget behavior, paths, and community results. |
 
 ```mermaid
@@ -411,10 +419,12 @@ flowchart LR
     G -->|"a gate fails"| K["Keep NetworkX default and revise or stop the proposal"]
 ```
 
-The primary memory and latency measurements are the reason to build this integration.
-Token use is a non-regression guardrail, not a claimed performance win: if the stable
-MCP contract yields the same bounded output, the agent-token profile should remain
-substantially unchanged while the server uses less memory or answers more quickly.
+Memory and latency remain the primary reasons to build the Ladybug engine. Context
+efficiency is a separate agent-facing outcome: changing the database alone does not
+reduce tokens, but a graph-backed section-retrieval contract can. The document tests
+must therefore measure task completion and material-content coverage alongside token
+payload; returning fewer tokens by omitting a relevant acceptance criterion or
+standard is a failure, not an optimization.
 
 ## Pre-Implementation Viability Assessment
 
