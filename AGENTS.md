@@ -25,6 +25,17 @@ The docs root is a repository-relative path. All fork-owned Zazz durable documen
 and local execution artifacts belong under `.zazz/`; do not create a competing
 top-level project documentation root.
 
+## Required Zazz Orientation
+
+Before changing repository content, branches, or Git remotes, read both:
+
+1. `.zazz/zgraphify-agent-orientation.md` for this fork's branch, upstream, and
+   checkout policy.
+2. `.zazz/standards/index.yaml` to route the task to the applicable standards.
+
+Then load only the standards selected by the index for the files and activity in
+scope.
+
 ## Documentation Operating Model
 
 Documentation operating model: GitHub-only committed Markdown, with local ignored
