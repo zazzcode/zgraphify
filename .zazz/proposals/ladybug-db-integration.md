@@ -426,6 +426,16 @@ must therefore measure task completion and material-content coverage alongside t
 payload; returning fewer tokens by omitting a relevant acceptance criterion or
 standard is a failure, not an optimization.
 
+### Methodology feedback opportunity
+
+This discovery may identify reusable improvements to the repository's `spec-builder`
+and `spec-driven` skills: a specification layout that exposes stable sections,
+explicit phases, and machine-recognizable acceptance-criterion markers is easier for
+both an agent and a graph query to navigate. Any such improvement is follow-on
+methodology work, not a hidden Ladybug implementation dependency. First establish the
+retrieval evidence and the smallest durable Markdown convention; then propose skill
+changes in a separate, reviewable change that can be adopted beyond this fork.
+
 ## Pre-Implementation Viability Assessment
 
 **Assessment:** The complete Ladybug-mode engine replacement is conditionally viable
