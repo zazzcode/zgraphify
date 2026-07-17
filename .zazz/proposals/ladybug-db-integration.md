@@ -70,15 +70,18 @@ baseline and evaluate a Zazz-aware ingestion layer with these additional semanti
 
 ```mermaid
 flowchart LR
+    C["Tree-sitter source-code extraction"] --> F["Graph-engine facade"]
     M["Zazz Markdown"] --> S["Structural document extraction"]
     S --> D["Document and section nodes"]
     I[".zazz index.yaml"] --> X["Zazz manifest ingestion"]
     X --> R["Typed routing edges"]
-    D --> G["Ladybug graph engine"]
-    R --> G
+    D --> F
+    R --> F
+    F --> N["NetworkX backend"]
+    F --> L["Ladybug backend"]
     A["Agent"] --> K["Native skill discovery"]
     A --> Q["MCP bounded document query"]
-    Q --> G
+    Q --> F
 ```
 
 Agent skills remain a separate concern. The host agent's native skill-discovery and
@@ -86,6 +89,16 @@ instruction mechanisms choose which skill applies; the Ladybug graph need not re
 that selection mechanism in the first discovery scope. Skills can remain ordinary
 source documents in the baseline graph, but Zazz standards and specifications are the
 priority document corpus for performance and context tests.
+
+The Zazz methodology ingestion profile is a Graphify concern above the storage engine,
+not a Ladybug-only feature. It recognizes the `.zazz` document categories and their
+manifest/index entries, then emits the same normalized document nodes, section nodes,
+and typed routing edges that flow through the graph-engine facade with source-code
+records. This makes the bounded document-query behavior available to the current
+NetworkX backend first and preserves the same contract if a project later selects
+Ladybug. It also lets one graph answer cross-domain questions, such as which standard
+governs a specification section or which source-code area a documented architecture
+decision describes, where explicit source evidence creates the relationship.
 
 The document-retrieval contract should be additive to the existing MCP surface, not a
 generic raw-Cypher escape hatch for agents. A later bounded specification can define a
