@@ -1,7 +1,7 @@
 # Zazz Reference Guides
 
-This directory contains general Zazz reference material. It is not a second
-documentation root and it does not contain active project artifacts.
+This directory contains vendor-managed general Zazz reference material. It is not
+a second documentation root and it does not contain project-specific artifacts.
 
 Project-specific documents live once in their corresponding directories directly
 under [`.zazz/`](../): [standards](../standards/),
@@ -18,9 +18,6 @@ The authoritative standards library is [`.zazz/standards/`](../standards/), and
 project proposals belong in [`.zazz/proposals/`](../proposals/).
 
 ## Top-Level Guides
-
-- [zgraphify-agent-orientation.md](zgraphify-agent-orientation.md) — first-read
-  branch, checkout, and upstream policy for this fork
 - [agent-execution-discipline.md](agent-execution-discipline.md) — agent
   execution discipline
 - [code-review-graph.md](code-review-graph.md) — code review graph guidance
@@ -33,5 +30,5 @@ project proposals belong in [`.zazz/proposals/`](../proposals/).
 ## Sync Boundary
 
 Pull vendor-managed material from `zazz-skills`; do not locally rewrite it.
-Local project documentation belongs under the root-level `.zazz/` directories.
-
+Local project documentation belongs under the root-level `.zazz/` directories,
+including [zgraphify-agent-orientation.md](../zgraphify-agent-orientation.md).

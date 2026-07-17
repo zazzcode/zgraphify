@@ -8,7 +8,7 @@ development. It explains how the fork relates to upstream Graphify, which branch
 are safe to change, and how the Zazz methodology applies here.
 
 Read this document before changing branches, synchronizing upstream changes, or
-preparing a pull request. For all other repository rules, read `../../AGENTS.md`.
+preparing a pull request. For all other repository rules, read `../AGENTS.md`.
 
 ## Current Git Operating Model
 
@@ -122,8 +122,8 @@ fixtures plus `tests/test_languages.py` coverage for new language extractors.
 - `.zazz/standards/index.yaml` is the entry point for selectively loading relevant
   engineering standards before code changes or review; its paths are relative to
   the repository root.
-- `.zazz/docs/` contains selected top-level reference guides, including this
-  orientation; it MUST NOT duplicate active artifact directories.
+- `.zazz/docs/` contains vendor-managed reference guides; it MUST NOT contain
+  project-specific orientation or active artifact directories.
 - `.zazz/features/` holds long-lived feature context.
 - `.zazz/specifications/` holds bounded deliverable specifications.
 - `.zazz/ephemeral/` is untracked local workspace for run logs, QA notes, handoffs,
