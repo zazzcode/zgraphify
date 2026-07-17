@@ -47,9 +47,9 @@ database binary. [Python client API](https://docs.ladybugdb.com/client-apis/pyth
 LadybugDB also has developer-facing tooling, but that is distinct from Graphify's
 runtime requirement. The `lbug` CLI can aid local inspection and administration, and
 Ladybug Explorer is an optional Docker-hosted visualization. Neither should be a
-required dependency for a first Graphify backend. Optional Ladybug extensions should
-also remain out of the initial dependency boundary unless a selected query feature
-requires one. [Extensions](https://docs.ladybugdb.com/extensions/)
+required dependency for a first Graphify backend. Extensions that support an existing
+Graphify use case are not treated as optional in Ladybug mode; they are part of the
+engine’s required provisioning contract. [Extensions](https://docs.ladybugdb.com/extensions/)
 
 The spike must validate the exact Ladybug release, supported Python versions,
 platform wheels, package footprint, license compatibility, and CI installation
@@ -60,6 +60,37 @@ would follow the repository's current optional-extra convention: development ins
 could use `uv sync --extra ladybug`, while CLI users could use
 `uv tool install "graphifyy[ladybug]"`. These are proposed commands, not a change to
 the package contract yet.
+
+### Required Ladybug extensions in Ladybug mode
+
+The Ladybug-mode engine must provision every extension needed to replace an existing
+Graphify capability without reverting to a full NetworkX graph. The initial required
+set is:
+
+| Extension | Provisioning | Graphify use case | Requirement |
+| --- | --- | --- | --- |
+| `algo` | `INSTALL algo; LOAD algo;` | Native Louvain clustering, PageRank, connected-components, and k-core operations. | Required for community clustering and available graph analysis. |
+| `fts` | `INSTALL fts; LOAD fts;` | Bounded native candidates for node/query text search. | Required for a Ladybug-mode text-query path; a bounded Python reranker may retain current fuzzy semantics. |
+
+Shortest path and bounded traversal use core Cypher capabilities and do not require
+the `algo` extension. The vector, LLM, and external-data extensions are not required
+because they do not replace a current Graphify use case. [Extensions](https://docs.ladybugdb.com/extensions/)
+[Shortest paths](https://docs.ladybugdb.com/extensions/algo/path/)
+
+Extension installation, loading, and readiness must be explicit engine provisioning:
+
+- Install approved extensions before a project first uses Ladybug mode, rather than
+  downloading them unexpectedly during a normal query.
+- Load required extensions when the Ladybug engine opens its `Database` object.
+- Verify the expected extension set and required indexes before serving build, query,
+  or clustering operations; fail with actionable remediation if provisioning is
+  incomplete.
+- Pin and record compatible Ladybug and extension versions in the eventual dependency
+  contract. Do not silently upgrade an extension for an existing graph.
+
+Official extension libraries are downloaded to Ladybug’s local extension directory.
+That behavior, offline installation, cache location, licensing, and CI availability
+must be validated in the discovery spike. [Extension files](https://docs.ladybugdb.com/developer-guide/files/)
 
 ### Live database files and management
 

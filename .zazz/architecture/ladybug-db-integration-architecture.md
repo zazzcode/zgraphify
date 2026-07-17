@@ -51,6 +51,30 @@ temporary files under memory pressure. [Ladybug persistence](https://docs.ladybu
 [Ladybug database internals](https://docs.ladybugdb.com/developer-guide/database-internal/)
 [Ladybug database files](https://docs.ladybugdb.com/developer-guide/files/)
 
+### Required extension provisioning
+
+Ladybug mode provisions extensions required to match existing Graphify use cases; it
+does not leave those capabilities to ad hoc developer setup.
+
+```cypher
+INSTALL algo;
+LOAD algo;
+INSTALL fts;
+LOAD fts;
+```
+
+| Extension | Engine responsibility | Existing Graphify behavior it supports |
+| --- | --- | --- |
+| `algo` | Create and execute projected-graph algorithms. | Community clustering and available structural analysis. |
+| `fts` | Build and query full-text indexes over selected `Entity` string properties. | Candidate generation for node and natural-language graph queries before bounded Graphify reranking. |
+
+The engine verifies both extensions and their required indexes before serving an
+operation. The `algo` extension is required for native clustering; the `fts` extension
+is required so text queries do not need a full in-memory trigram index. The core engine
+covers bounded traversal and shortest-path operations without an additional extension.
+No vector, LLM, cloud, or external-data extension is required unless Zgraphify first
+adds a corresponding product capability. [Ladybug extensions](https://docs.ladybugdb.com/extensions/)
+
 | Concern | Ladybug-mode design |
 | --- | --- |
 | Durable graph | `graphify-out/graph.lbug` is the authoritative graph artifact. |
