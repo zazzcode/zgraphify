@@ -3,8 +3,9 @@
 ## Purpose
 
 This document is the operational orientation for agents and contributors working in
-the Zgraphify fork. It explains how the fork relates to upstream Graphify, which
-branches are safe to change, and how the Zazz methodology applies here.
+the Zgraphify fork. Its objective is to apply the Zazz methodology to future fork
+development. It explains how the fork relates to upstream Graphify, which branches
+are safe to change, and how the Zazz methodology applies here.
 
 Read this document before changing branches, synchronizing upstream changes, or
 preparing a pull request. For all other repository rules, read `../AGENTS.md`.
@@ -117,7 +118,9 @@ fixtures plus `tests/test_languages.py` coverage for new language extractors.
 
 - `.zazz/project.md` is the fork project overview.
 - `.zazz/standards/index.yaml` is the entry point for selectively loading relevant
-  engineering standards before code changes or review.
+  engineering standards before code changes or review; its paths are relative to
+  the repository root.
+- `.zazz/docs/` contains the complete vendored Zazz general-documentation library.
 - `.zazz/features/` holds long-lived feature context.
 - `.zazz/specifications/` holds bounded deliverable specifications.
 - `.zazz/ephemeral/` is untracked local workspace for run logs, QA notes, handoffs,

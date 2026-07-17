@@ -7,6 +7,13 @@ Graphify builds a local-first knowledge graph from source code and supported
 documents so developers and coding agents can explore structure, dependencies, and
 design rationale without repeatedly reading an entire repository.
 
+## Development Objective
+
+Future Zgraphify fork development uses the Zazz methodology. Zazz provides the
+durable project context, standards routing, feature and proposal documents,
+deliverable specifications, execution records, and review discipline that govern
+fork-owned work from planning through integration.
+
 ## Branch Model
 
 - `v8` is the upstream baseline retained for comparison and upstream synchronization.

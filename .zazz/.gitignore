@@ -1,0 +1,4 @@
+# Local mutable execution records: run logs, QA notes, handoffs, and evidence.
+# Keep the directory itself so the Zazz root has a stable shape.
+ephemeral/*
+!ephemeral/.gitkeep
