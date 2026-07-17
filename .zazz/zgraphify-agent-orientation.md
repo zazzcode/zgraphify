@@ -13,7 +13,9 @@ preparing a pull request. For all other repository rules, read `../AGENTS.md`.
 ## Current Git Operating Model
 
 We currently use one regular Git checkout and ordinary Git branches. We are **not**
-using the Zazz bare-repository plus sibling-worktree model yet.
+using the Zazz bare-repository plus sibling-worktree model yet. This is an
+intentional, temporary operating choice for this exploratory fork: use standard
+branch-based Git workflow here even though Zazz projects commonly use worktrees.
 
 - Do not create, convert, remove, or assume Git worktrees.
 - Keep one focused change or feature per branch.
