@@ -34,6 +34,22 @@ It does not approve a dependency, define a deliverable specification, change the
 Graphify public CLI, or decide a product release plan. NetworkX remains the engine for
 the default JSON backend unless and until a Ladybug mode is approved.
 
+### Initial corpus and test emphasis
+
+The first discovery corpus and performance test cases focus on source code and
+Markdown. This matches the fork’s expected use: code supplies the principal structural
+graph, while Markdown supplies durable architecture, proposal, and operational context.
+Graphify's code path is AST-first and uses Tree-sitter for its supported languages;
+Markdown has a separate structural extractor for files, headings, and local document
+links, with the existing semantic-document path available where configured.
+
+PDFs, video/audio, images, Office files, and other baseline Graphify inputs remain
+supported by the JSON/NetworkX backend and are not being removed. They are outside the
+initial Ladybug performance corpus and receive no special database-backend test matrix
+in this discovery. Existing compatibility coverage remains in place; a later proposal
+must explicitly expand the Ladybug corpus before claiming equivalent behavior for any
+of those input types.
+
 ## LadybugDB Runtime and Packaging Deep Dive
 
 ### What an integration would install and run
@@ -255,6 +271,22 @@ metadata. Hyperedges likely require a separate `Hyperedge` node table and member
 relationships. Less-stable or nested JSON fields need a deliberate mapping decision:
 typed columns where queried, a serialized metadata field where not queried, or a
 normalized side table.
+
+Source code and Markdown are expected to be the two main content categories, not two
+unrelated graph models. The initial schema should keep both in `Entity`, distinguished
+by an explicit `content_kind` or equivalent existing file-type field, so shared
+identity, provenance, links, traversal, community membership, and MCP output remain
+uniform. A Markdown file and its heading nodes can therefore connect directly to the
+code nodes they describe without a cross-table translation layer.
+
+Ladybug's `fts` extension can index selected `STRING` properties on node tables and
+return BM25-scored candidates. It is useful for indexed labels, paths, and a
+purpose-built `search_text` property, but it does not parse Markdown, follow document
+links, watch files, or manage document versions. Graphify must retain those extraction,
+normalization, change-detection, and lifecycle responsibilities. To search Markdown
+body text, the engine must deliberately persist bounded section text in
+`search_text`; indexing only the current heading/label nodes will not create a
+full-document-content search feature. [Ladybug full-text search](https://docs.ladybugdb.com/extensions/full-text-search/)
 
 This is a hypothesis for a spike, not an approved schema. Ladybug table typing,
 property support, multi-edge behavior, indexing, and migration behavior must be
